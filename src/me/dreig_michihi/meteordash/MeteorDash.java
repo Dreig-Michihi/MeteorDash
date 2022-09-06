@@ -108,11 +108,11 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
         fireAuraRadius = ConfigManager.defaultConfig.get().getDouble(path+"FireAuraRadius");
         maxHeightAfterExplosion = player.getLocation().getY();
         hitEntities = new ArrayList();
-        applyModifiers(meteorDamage);
+        setDamage(meteorDamage);
         //location = player.getLocation();
     }
 
-    private void applyModifiers(double damage) {
+    private void setDamage(double damage) {
         int damageMod = 0;
 
         damageMod = (int) (this.getDayFactor(damage) - damage);
