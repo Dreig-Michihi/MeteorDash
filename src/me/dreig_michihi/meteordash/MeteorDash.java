@@ -1,13 +1,19 @@
 package me.dreig_michihi.meteordash;
 
 import com.projectkorra.projectkorra.Element;
+import com.projectkorra.projectkorra.GeneralMethods;
+import com.projectkorra.projectkorra.ProjectKorra;
+import com.projectkorra.projectkorra.ability.AddonAbility;
 import com.projectkorra.projectkorra.ability.BlueFireAbility;
 import com.projectkorra.projectkorra.ability.CombustionAbility;
-import com.projectkorra.projectkorra.ability.FireAbility;
-import com.projectkorra.projectkorra.configuration.Config;
+import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
-import com.projectkorra.projectkorra.firebending.FireJet;
-import org.bukkit.*;
+import com.projectkorra.projectkorra.util.DamageHandler;
+import com.projectkorra.projectkorra.util.ParticleEffect;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -17,40 +23,41 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.util.Vector;
 
-import com.projectkorra.projectkorra.GeneralMethods;
-import com.projectkorra.projectkorra.ProjectKorra;
-import com.projectkorra.projectkorra.ability.AddonAbility;
-import com.projectkorra.projectkorra.util.DamageHandler;
-import com.projectkorra.projectkorra.util.ParticleEffect;
-
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
 
 public class MeteorDash extends CombustionAbility implements AddonAbility {
     private Listener MDL;
     private Location location;
-    private Location explodeCenter;
-    private Vector direction;
-    private Vector directionBack;
     private double maxHeightAfterExplosion;
-    private double landingHeight;
     private Location right;
     private Location left;
 
+    @Attribute("ExplosionsCount")
     public int count;//count of explosions
+    @Attribute("MeteorDamage")
     private double meteorDamage;
+    @Attribute(Attribute.KNOCKUP)
     private double userKnockback;
+    @Attribute(Attribute.KNOCKBACK)
     private double enemiesKnockback;
+    @Attribute(Attribute.CHARGE_DURATION)
     private Long timeBetweenExplosions;
+    @Attribute(Attribute.COOLDOWN)
     private Long cooldown;
+    @Attribute(Attribute.DAMAGE)
     private double auraDamage;
+    @Attribute(Attribute.FIRE_TICK)
     private int auraFireTicks;
     private boolean meteoriteSetsCooldown;
+    @Attribute(Attribute.HEIGHT)
     private double minHeightToMeteorite;
+    @Attribute(Attribute.SELECT_RANGE)
     private double tooCloseDistation;
     private Long minTimeBetweenExplosions;
+    @Attribute(Attribute.SPEED)
+    private double doAuraSpeed;
+    private double doMeteoriteSpeed;
     private boolean fireInHands;
     private boolean fireAuraOnlyWhenAbilityIsChoosed;
     private double fireAuraRadius;
@@ -85,8 +92,6 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
 
         start();
     }
-    private double doAuraSpeed;
-    private double doMeteoriteSpeed;
     private void setFields() {
 
         count = ConfigManager.defaultConfig.get().getInt(path + "ExplosionsCount");
@@ -107,13 +112,13 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
         fireAuraOnlyWhenAbilityIsChoosed = ConfigManager.defaultConfig.get().getBoolean(path+"FireAuraOnlyWhenAbilityIsChoosed");
         fireAuraRadius = ConfigManager.defaultConfig.get().getDouble(path+"FireAuraRadius");
         maxHeightAfterExplosion = player.getLocation().getY();
-        hitEntities = new ArrayList();
+        hitEntities = new ArrayList<>();
         applyModifiers(meteorDamage);
         //location = player.getLocation();
     }
 
     private void applyModifiers(double damage) {
-        int damageMod = 0;
+        int damageMod;
 
         damageMod = (int) (this.getDayFactor(damage) - damage);
 
@@ -125,13 +130,12 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
 
     boolean bigSpeed = false;
     private double speed;
-    private double speedParticles;
 
     private void fireAura(Player player) {
         Random random = new Random();
         speed = player.getVelocity().length() * 20;
         bigSpeed = speed > doMeteoriteSpeed;
-        speedParticles = (int) speed;
+        double speedParticles = (int) speed;
         if (speedParticles > 40) speedParticles = 40;
         if(fireInHands) {
             right = player.getLocation().add(0, 0.65, 0).add(getBackHeadDirection(player).multiply(0.3D)).add(getRightHeadDirection(player).multiply(0.6D));
@@ -140,15 +144,15 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
         if(fireInHands&&speed>10&&bPlayer.getBoundAbilityName().equalsIgnoreCase("MeteorDash")) {
             if (!isWater(left.getBlock()))
                 if (bPlayer.canUseSubElement(Element.BLUE_FIRE))
-                    ParticleEffect.SOUL_FIRE_FLAME.display(left, (int)speedParticles, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, speedParticles/1000);
+                    ParticleEffect.SOUL_FIRE_FLAME.display(left, (int) speedParticles, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, speedParticles /1000);
                 else
-                    ParticleEffect.FLAME.display(left, (int)speedParticles, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, speedParticles/1000);
+                    ParticleEffect.FLAME.display(left, (int) speedParticles, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, speedParticles /1000);
             else ParticleEffect.WATER_BUBBLE.display(left, 15, 0.25, 0.25, 0.25, 0.5);
             if (!isWater(right.getBlock()))
                 if (bPlayer.canUseSubElement(Element.BLUE_FIRE))
-                    ParticleEffect.SOUL_FIRE_FLAME.display(right, (int)speedParticles, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, speedParticles/1000);
+                    ParticleEffect.SOUL_FIRE_FLAME.display(right, (int) speedParticles, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, speedParticles /1000);
                 else
-                    ParticleEffect.FLAME.display(right, (int)speedParticles, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, speedParticles/1000);
+                    ParticleEffect.FLAME.display(right, (int) speedParticles, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, speedParticles /1000);
             else ParticleEffect.WATER_BUBBLE.display(right, 15, 0.25, 0.25, 0.25, 0.5);
 
             if (random.nextDouble() < 0.5) {
@@ -167,13 +171,13 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
                 if (bigSpeed)
                     ParticleEffect.SMOKE_NORMAL.display(left, 10, 0.01, 0.01, 0.01, 0.7);
                 if (!isWater(left.getBlock()))
-                    playFirebendingParticles(left, (int)speedParticles, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10);
+                    playFirebendingParticles(left, (int) speedParticles, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10);
                 else ParticleEffect.BUBBLE_POP.display(left, 15, 0.25, 0.25, 0.25);
 
                 if (bigSpeed)
                     ParticleEffect.SMOKE_NORMAL.display(right, 10, 0.01, 0.01, 0.01, 0.7);
                 if (!isWater(right.getBlock()))
-                    playFirebendingParticles(right, (int)speedParticles, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10, (speedParticles/1000)*speedParticles/10);
+                    playFirebendingParticles(right, (int) speedParticles, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10, (speedParticles /1000)* speedParticles /10);
                 else ParticleEffect.BUBBLE_POP.display(right, 15, 0.25, 0.25, 0.25);
 
                 if (random.nextDouble() < 0.5) {
@@ -236,9 +240,7 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
             ParticleEffect.SOUL_FIRE_FLAME.display(craterLoc, 50, 3, 3, 3, 1);
         else
             ParticleEffect.FLAME.display(craterLoc, 50, 3, 3, 3, 1);
-        Iterator entityIterator = GeneralMethods.getEntitiesAroundPoint(craterLoc, 5).iterator();
-        while (entityIterator.hasNext()) {
-            Entity e = (Entity) entityIterator.next();
+        for (Entity e : GeneralMethods.getEntitiesAroundPoint(craterLoc, 5)) {
             if (e instanceof LivingEntity && e.getUniqueId() != player.getUniqueId()) {
                 Vector direction = GeneralMethods.getDirection(craterLoc, ((LivingEntity) e).getEyeLocation()).normalize().multiply(enemiesKnockback);
                 DamageHandler.damageEntity(e, meteorDamage, this);
@@ -279,9 +281,7 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
             else
                 ParticleEffect.FLAME.display(right, 5, 0.1, 0.1, 0.1, 0.1);
         player.getWorld().playSound(explodeCenter, Sound.ENTITY_GENERIC_EXPLODE, 2.0F, 3.0F);
-        Iterator entityIterator = GeneralMethods.getEntitiesAroundPoint(explodeCenter, 4).iterator();
-        while (entityIterator.hasNext()) {
-            Entity e = (Entity) entityIterator.next();
+        for (Entity e : GeneralMethods.getEntitiesAroundPoint(explodeCenter, 4)) {
             if (e instanceof LivingEntity) {
                 Vector direction;
                 if (!explodeWater)
@@ -289,11 +289,10 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
                         direction = GeneralMethods.getDirection(explodeCenter, ((LivingEntity) e).getEyeLocation()).normalize().multiply(userKnockback);
                     else
                         direction = GeneralMethods.getDirection(explodeCenter, ((LivingEntity) e).getEyeLocation()).normalize().multiply(enemiesKnockback);
+                else if (e.getUniqueId() == player.getUniqueId())
+                    direction = GeneralMethods.getDirection(explodeCenter, ((LivingEntity) e).getEyeLocation()).normalize().multiply(userKnockback / 2);
                 else
-                if (e.getUniqueId() == player.getUniqueId())
-                    direction = GeneralMethods.getDirection(explodeCenter, ((LivingEntity) e).getEyeLocation()).normalize().multiply(userKnockback /2);
-                else
-                    direction = GeneralMethods.getDirection(explodeCenter, ((LivingEntity) e).getEyeLocation()).normalize().multiply(enemiesKnockback /2);
+                    direction = GeneralMethods.getDirection(explodeCenter, ((LivingEntity) e).getEyeLocation()).normalize().multiply(enemiesKnockback / 2);
                 if (e.getUniqueId() != player.getUniqueId())
                     DamageHandler.damageEntity(e, meteorDamage, this);
                 e.setVelocity(direction);
@@ -338,13 +337,13 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
             maxHeightAfterExplosion = player.getLocation().getY();
         Location loc = player.getLocation();
         loc.setY(loc.getY() - 1.0D);
-        landingHeight = player.getLocation().getY();
+        double landingHeight = player.getLocation().getY();
         if (GeneralMethods.isSolid(loc.getBlock())) {
             if (speed > doAuraSpeed && maxHeightAfterExplosion - landingHeight > minHeightToMeteorite) {
                 Location destination = player.getEyeLocation().add(1.5, 0.0D, 1.5);
                 Vector vec = GeneralMethods.getDirection(this.player.getLocation(), destination.clone());
                 for (int i = 0; i <= 360; i += 5) {
-                    vec = GeneralMethods.rotateXZ(vec, (double) (i - 180));
+                    vec = GeneralMethods.rotateXZ(vec, i - 180);
                     vec.setY(0);
                     if (bPlayer.canUseSubElement(Element.BLUE_FIRE))
                         ParticleEffect.SOUL_FIRE_FLAME.display(player.getLocation().add(vec), 5, 0.1, 0.1, 0.1, 0.5);
@@ -376,7 +375,7 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
         }
         if (bPlayer.getBoundAbilityName().equalsIgnoreCase("MeteorDash")) {
             location = player.getEyeLocation();
-            direction = location.getDirection().normalize();
+            Vector direction = location.getDirection().normalize();
             boolean tooClose = false;
             for (double i = 0; i < tooCloseDistation; i += 0.4D) {
                 if (GeneralMethods.isSolid(location.clone().add(direction.clone().multiply(i)).getBlock())) {
@@ -385,8 +384,8 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
                 }
             }
             if (count > 0 && !tooClose) {
-                directionBack = direction.clone().multiply(-1).normalize(); // противоположное направление
-                explodeCenter = location.clone().add(directionBack); // центр взрыва
+                Vector directionBack = direction.clone().multiply(-1).normalize(); // противоположное направление
+                Location explodeCenter = location.clone().add(directionBack); // центр взрыва
                 right = player.getLocation().add(0, 0.5, 0).add(getBackHeadDirection(player).multiply(0.3D)).add(getRightHeadDirection(player).multiply(0.6D));
                 left = player.getLocation().add(0, 0.5, 0).add(getBackHeadDirection(player).multiply(0.3D)).add(getLeftHeadDirection(player).multiply(0.6D));
                 if (player.isSneaking()) {
@@ -449,7 +448,7 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
     @Override
 
     public String getAuthor() {
-        return "" + Element.FIRE.getColor() + "Dreig_Michihi";
+        return "" + ChatColor.DARK_RED + "Dreig_Michihi";
     }
 
     @Override
