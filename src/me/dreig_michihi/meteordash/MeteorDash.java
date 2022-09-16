@@ -453,7 +453,7 @@ public class MeteorDash extends CombustionAbility implements AddonAbility {
 
     @Override
     public String getVersion() {
-        return ChatColor.GOLD + "1.5.3";
+        return ChatColor.GOLD + "1.5.4";
     }
 
     @Override
